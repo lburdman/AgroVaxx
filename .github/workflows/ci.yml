@@ -1,0 +1,46 @@
+name: C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up CMake
+      uses: jwlawson/actions-setup-cmake@v1.13
+      with:
+        cmake-version: '3.21.x'
+
+    - name: Configure CMake
+      run: cmake -B tests/build -S tests
+
+    - name: Build Unit Tests
+      run: cmake --build tests/build
+
+    - name: Run Unit Tests
+      run: ./tests/build/test_state_machine
+
+  build-mbed:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Mbed CLI 2 and dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-none-eabi ninja-build
+        pip install mbed-tools
+
+    - name: Configure Mbed OS Custom Target
+      run: |
+        mbed-tools configure -m NUCLEO_F429ZI -t GCC_ARM
+
+    - name: Compile Mbed OS Project
+      run: |
+        mbed-tools compile -m NUCLEO_F429ZI -t GCC_ARM
