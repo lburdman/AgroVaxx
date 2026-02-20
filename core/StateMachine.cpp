@@ -9,8 +9,8 @@ constexpr uint64_t CONFIRM_TIMEOUT_MS =
 StateMachine::StateMachine(IRfidReader *r, IBluetoothModule *b, IButton *btn,
                            IStatusLeds *l, ITimeProvider *t)
     : rfid(r), ble(b), button(btn), leds(l), timeProvider(t),
-      state(SystemState::INIT_SESSION), lastLedToggleTime(0),
-      stateEntryTime(0) {}
+      state(SystemState::INIT_SESSION), lastLedToggleTime(0), stateEntryTime(0),
+      dedupFilter(t, 2000) {}
 
 void StateMachine::init() {
   rfid->init();
@@ -27,6 +27,7 @@ void StateMachine::processMessages() {
     if (msg.rfind("VACCINE:", 0) == 0) {
       currentVaccine = msg.substr(8);
       vaccinatedTags.clear(); // New session, clear cache
+      dedupFilter.reset();    // Reset the filter for the new session
       state = SystemState::WAITING_RFID;
       stateEntryTime = timeProvider->getTicksMs();
       ble->sendMessage("ACK_VACCINE:" + currentVaccine + "\n");
@@ -79,7 +80,7 @@ void StateMachine::update() {
   case SystemState::WAITING_RFID:
     if (rfid->isNewTagPresent()) {
       std::string tag = rfid->readTagUid();
-      if (!tag.empty()) {
+      if (dedupFilter.processTag(tag)) {
         if (vaccinatedTags.find(tag) != vaccinatedTags.end()) {
           // Already vaccinated in this session, ignore
           ble->sendMessage("ALREADY_VACCINATED:" + tag + "\n");

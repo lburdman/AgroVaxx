@@ -25,6 +25,7 @@ add_executable(
   test_state_machine
   test_state_machine.cpp
   ../core/StateMachine.cpp
+  ../core/TagDedupFilter.cpp
 )
 target_link_libraries(
   test_state_machine

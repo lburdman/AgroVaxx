@@ -15,15 +15,18 @@ add_subdirectory(${MBED_PATH})
 add_executable(AgroVaxx
     main.cpp
     core/StateMachine.cpp
-    drivers/MFRC522.cpp
+    core/TagDedupFilter.cpp
+    third_party/mfrc522/MFRC522.cpp
 )
 
+target_include_directories(AgroVaxx PRIVATE third_party/mfrc522)
 target_link_libraries(AgroVaxx mbed-os)
 
 mbed_set_post_build(AgroVaxx)
 
 # Peripheral Tests Executables
-add_executable(test_hw_rfid tests/hw_test_rfid.cpp drivers/MFRC522.cpp)
+add_executable(test_hw_rfid tests/hw_test_rfid.cpp third_party/mfrc522/MFRC522.cpp)
+target_include_directories(test_hw_rfid PRIVATE third_party/mfrc522)
 target_link_libraries(test_hw_rfid mbed-os)
 mbed_set_post_build(test_hw_rfid)
 

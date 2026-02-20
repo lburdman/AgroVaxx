@@ -89,12 +89,58 @@ TEST_CASE(ValidatesAlreadyVaccinatedTag) {
   f.button.pressed = false;
   f.rfid.hasNewTag = true;
   f.rfid.nextTag = "TAG456";
+  f.timeProvider.advance(2100); // Advance past dedup filter timeout
   f.sm.update();
 
   EXPECT_EQ(static_cast<int>(f.sm.getState()),
             static_cast<int>(SystemState::WAITING_RFID));
   EXPECT_EQ(f.ble.outgoingMsgs.size(), 1);
   EXPECT_EQ(f.ble.outgoingMsgs[0], "ALREADY_VACCINATED:TAG456\n");
+}
+
+TEST_CASE(DedupFilterPreventsSpam) {
+  TestFixture f;
+  f.ble.incomingMsgs.push("VACCINE:SPAM");
+  f.sm.update();
+  f.ble.outgoingMsgs.clear();
+
+  // First read triggers state change
+  f.rfid.hasNewTag = true;
+  f.rfid.nextTag = "SPAM123";
+  f.sm.update();
+  EXPECT_EQ(static_cast<int>(f.sm.getState()),
+            static_cast<int>(SystemState::RFID_READ));
+
+  // Reset back to WAITING_RFID manually for testing spam in that state
+  f.timeProvider.advance(6000);
+  f.sm.update(); // Transitions back to WAITING_RFID due to wait confirm timeout
+  EXPECT_EQ(static_cast<int>(f.sm.getState()),
+            static_cast<int>(SystemState::WAITING_RFID));
+
+  // Now spam the same tag without waiting enough time
+  f.timeProvider.advance(500);
+  f.rfid.hasNewTag = true;
+  f.rfid.nextTag = "SPAM123";
+  f.sm.update();
+
+  // State should remain WAITING_RFID with NO further messages over Bluetooth
+  // (ble output is empty)
+  EXPECT_EQ(static_cast<int>(f.sm.getState()),
+            static_cast<int>(SystemState::WAITING_RFID));
+  EXPECT_EQ(f.ble.outgoingMsgs.size(), 0);
+
+  // Still spamming
+  f.timeProvider.advance(500);
+  f.sm.update();
+  EXPECT_EQ(static_cast<int>(f.sm.getState()),
+            static_cast<int>(SystemState::WAITING_RFID));
+
+  // Now wait the 2000ms dedup timeout
+  f.timeProvider.advance(2100);
+  f.sm.update();
+  // State should trigger again
+  EXPECT_EQ(static_cast<int>(f.sm.getState()),
+            static_cast<int>(SystemState::RFID_READ));
 }
 
 TEST_CASE(RfidReadTimesOutWithoutConfirmation) {
@@ -123,6 +169,7 @@ int main() {
   TransitionsToRfidReadOnValidTag();
   ValidatesAlreadyVaccinatedTag();
   RfidReadTimesOutWithoutConfirmation();
+  DedupFilterPreventsSpam();
   std::cout << "All tests passed!" << std::endl;
   return 0;
 }
