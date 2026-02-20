@@ -3,9 +3,14 @@ cmake_minimum_required(VERSION 3.19.0 FATAL_ERROR)
 set(MBED_TOOLCHAIN "GCC_ARM" CACHE STRING "Toolchain used to compile Mbed OS")
 set(MBED_TARGET "NUCLEO_F429ZI" CACHE STRING "Mbed target implementation")
 
-add_subdirectory(mbed-os)
+set(MBED_PATH ${CMAKE_CURRENT_SOURCE_DIR}/mbed-os CACHE INTERNAL "")
+set(MBED_CONFIG_PATH ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "")
+
+include(${MBED_PATH}/tools/cmake/app.cmake)
 
 project(AgroVaxx)
+
+add_subdirectory(${MBED_PATH})
 
 add_executable(AgroVaxx
     main.cpp

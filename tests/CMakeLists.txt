@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
 project(AgroVaxxTests)
 
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    message(STATUS "Skipping host unit tests because they were included as a subdirectory.")
+    return()
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-Wall -Wextra -Werror)
 
 include(FetchContent)
 FetchContent_Declare(

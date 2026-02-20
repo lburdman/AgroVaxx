@@ -1,0 +1,16 @@
+# Mbed OS and dependencies
+mbed-os/
+mbed_env/
+.mbedbuild/
+mbed-os.lib
+
+# Build artifacts
+cmake_build/
+tests/build/
+
+# Downloaded toolchains
+arm_gcc.tar.bz2
+arm_gcc_extracted/
+
+# macOS
+.DS_Store

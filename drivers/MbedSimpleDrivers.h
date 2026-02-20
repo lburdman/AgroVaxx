@@ -39,7 +39,9 @@ public:
 
 class MbedTime : public ITimeProvider {
 public:
-  uint64_t getTicksMs() override { return Kernel::get_ms_count(); }
+  uint64_t getTicksMs() override {
+    return rtos::Kernel::Clock::now().time_since_epoch().count();
+  }
 };
 
 #endif // MBED_SIMPLE_DRIVERS_H
